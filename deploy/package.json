@@ -1,0 +1,7 @@
+{
+  "name": "japan-trip-planner",
+  "private": true,
+  "scripts": {
+    "build": "bash build.sh"
+  }
+}
