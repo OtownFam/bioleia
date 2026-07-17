@@ -1,25 +1,20 @@
 #!/bin/bash
-# Build: fetch the previous production deployment (HTML + image assets),
-# patch the Jul 18 card server-side, emit everything into public/.
+# Fetch the final index.html from the pinned GitHub commit, and the image
+# assets from the previous Vercel deployment (share-token auth). Emit public/.
 set -euo pipefail
+RAW="https://raw.githubusercontent.com/OtownFam/bioleia/b307c9cab15836147a006f656a9fcf4f265795a9"
 BASE="https://japan-trip-planner-810skyo52-marqs-projects-1c6519ec.vercel.app"
 SHARE="_vercel_share=XokSa3gTz7v3QxPlwp84YDDNScNG6Pj6"
 JAR="$(mktemp)"
-fetch() { # fetch <path> <outfile>
-  curl -sSfL --retry 3 --retry-delay 2 -c "$JAR" -b "$JAR" "$BASE/$1?$SHARE" -o "$2"
-}
 mkdir -p public/img public/tickets
 
-fetch "" orig.html
-grep -q "Japan → Hawaii" orig.html || { echo "FATAL: fetched page is not the app (auth wall?)"; exit 1; }
-
-python3 patch.py orig.html public/index.html
+curl -sSfL --retry 3 --retry-delay 2 "$RAW/index.html" -o public/index.html
+grep -q "Crowd tactic" public/index.html || { echo "FATAL: index.html is not the patched version"; exit 1; }
 
 while IFS= read -r p; do
-  fetch "$p" "public/$p"
+  curl -sSfL --retry 3 --retry-delay 2 -c "$JAR" -b "$JAR" "$BASE/$p?$SHARE" -o "public/$p"
 done < assets.txt
 
-# validate: no auth/HTML pages masquerading as images
 fail=0
 while IFS= read -r p; do
   f="public/$p"
